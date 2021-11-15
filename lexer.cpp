@@ -17,6 +17,11 @@ Token::Token(const Token &that)
       value_.StringValue = new std::string(*that.value_.StringValue);
       break;
     }
+    case Kind::INT:
+    {
+      value_.IntValue = that.value_.IntValue;
+      break;
+    }
     default: {
       break;
     }
@@ -42,6 +47,10 @@ Token &Token::operator=(const Token &that)
     case Kind::STRING:
     case Kind::IDENT: {
       value_.StringValue = new std::string(*that.value_.StringValue);
+      break;
+    }
+    case Kind::INT: {
+      value_.IntValue = that.value_.IntValue;
       break;
     }
     default: {
@@ -83,6 +92,14 @@ Token Token::String(const Location &l, const std::string &str)
 }
 
 // -----------------------------------------------------------------------------
+Token Token::Integer(const Location &l, const uint64_t intVal)
+{
+  Token tk(l, Kind::INT);
+  tk.value_.IntValue = intVal;
+  return tk;
+}
+
+// -----------------------------------------------------------------------------
 void Token::Print(std::ostream &os) const
 {
   os << kind_;
@@ -112,6 +129,7 @@ std::ostream &operator<<(std::ostream &os, const Token::Kind kind)
     case Token::Kind::FUNC: return os << "func";
     case Token::Kind::RETURN: return os << "return";
     case Token::Kind::WHILE: return os << "while";
+    case Token::Kind::IF: return os << "if";
     case Token::Kind::LPAREN: return os << "(";
     case Token::Kind::RPAREN: return os << ")";
     case Token::Kind::LBRACE: return os << "{";
@@ -121,6 +139,9 @@ std::ostream &operator<<(std::ostream &os, const Token::Kind kind)
     case Token::Kind::EQUAL: return os << "=";
     case Token::Kind::COMMA: return os << ",";
     case Token::Kind::PLUS: return os << "+";
+    case Token::Kind::SUB: return os << "-";
+    case Token::Kind::MUL: return os << "*";
+    case Token::Kind::EQ: return os << "==";
     case Token::Kind::END: return os << "END";
     case Token::Kind::INT: return os << "INT";
     case Token::Kind::STRING: return os << "STRING";
@@ -180,8 +201,21 @@ const Token &Lexer::Next()
     case '}': return NextChar(), tk_ = Token::RBrace(loc);
     case ':': return NextChar(), tk_ = Token::Colon(loc);
     case ';': return NextChar(), tk_ = Token::Semi(loc);
-    case '=': return NextChar(), tk_ = Token::Equal(loc);
+    case '=':
+    {
+      NextChar();
+      switch (chr_)
+      {
+      case '=':
+        return NextChar(), tk_ = Token::Eq(loc);
+      
+      default:
+        return NextChar(), tk_ = Token::Equal(loc);
+      }
+    } 
     case '+': return NextChar(), tk_ = Token::Plus(loc);
+    case '-': return NextChar(), tk_ = Token::Sub(loc);
+    case '*': return NextChar(), tk_ = Token::Mul(loc);
     case ',': return NextChar(), tk_ = Token::Comma(loc);
     case '"': {
       std::string word;
@@ -206,7 +240,18 @@ const Token &Lexer::Next()
         if (word == "func") return tk_ = Token::Func(loc);
         if (word == "return") return tk_ = Token::Return(loc);
         if (word == "while") return tk_ = Token::While(loc);
+        if (word == "if") return tk_ = Token::If(loc);
         return tk_ = Token::Ident(loc, word);
+      }
+      if(isdigit(chr_))
+      {
+        uint64_t number = 0;
+        while (isdigit(chr_))
+        {
+          number = (chr_ - '0') + number * 10;
+          NextChar();
+        }
+        return tk_ = Token::Integer(loc, number);
       }
       Error("unknown character '" + std::string(1, chr_) + "'");
     }

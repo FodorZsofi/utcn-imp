@@ -114,6 +114,9 @@ void Codegen::LowerStmt(const Scope &scope, const Stmt &stmt)
     case Stmt::Kind::WHILE: {
       return LowerWhileStmt(scope, static_cast<const WhileStmt &>(stmt));
     }
+    case Stmt::Kind::IF: {
+      return LowerIfStmt(scope, static_cast<const IfStmt &>(stmt));
+    }
     case Stmt::Kind::EXPR: {
       return LowerExprStmt(scope, static_cast<const ExprStmt &>(stmt));
     }
@@ -151,6 +154,22 @@ void Codegen::LowerWhileStmt(const Scope &scope, const WhileStmt &whileStmt)
 }
 
 // -----------------------------------------------------------------------------
+void Codegen::LowerIfStmt(const Scope &scope, const IfStmt &ifStmt)
+{
+  auto entry = MakeLabel();
+  auto exit = MakeLabel();
+
+  
+  EmitLabel(entry);
+  LowerExpr(scope, ifStmt.GetCond());
+  EmitJumpFalse(exit);
+  LowerStmt(scope, ifStmt.GetStmt());
+  // EmitJump(entry);
+  EmitLabel(exit);
+}
+
+
+// -----------------------------------------------------------------------------
 void Codegen::LowerReturnStmt(const Scope &scope, const ReturnStmt &retStmt)
 {
   LowerExpr(scope, retStmt.GetExpr());
@@ -177,8 +196,12 @@ void Codegen::LowerExpr(const Scope &scope, const Expr &expr)
     case Expr::Kind::CALL: {
       return LowerCallExpr(scope, static_cast<const CallExpr &>(expr));
     }
+    case Expr::Kind::INT: {
+      return LowerIntExpr(scope, static_cast<const IntegerExpr &>(expr));
+    }
   }
 }
+
 
 // -----------------------------------------------------------------------------
 void Codegen::LowerRefExpr(const Scope &scope, const RefExpr &expr)
@@ -209,8 +232,18 @@ void Codegen::LowerBinaryExpr(const Scope &scope, const BinaryExpr &binary)
     case BinaryExpr::Kind::ADD: {
       return EmitAdd();
     }
+    case BinaryExpr::Kind::SUB: {
+      return EmitSub();
+    }
+    case BinaryExpr::Kind::MUL: {
+      return EmitMul();
+    }
+    case BinaryExpr::Kind::EQ: {
+      return EmitEq();
+    }
   }
 }
+
 
 // -----------------------------------------------------------------------------
 void Codegen::LowerCallExpr(const Scope &scope, const CallExpr &call)
@@ -222,6 +255,14 @@ void Codegen::LowerCallExpr(const Scope &scope, const CallExpr &call)
   EmitCall(call.arg_size());
   depth_ -= call.arg_size();
 }
+
+// -----------------------------------------------------------------------------
+void Codegen::LowerIntExpr(const Scope &scope, const IntegerExpr &expr)
+{
+  EmitPushInt(expr.GetVal());
+}
+
+
 
 // -----------------------------------------------------------------------------
 void Codegen::LowerFuncDecl(const Scope &scope, const FuncDecl &decl)
@@ -338,6 +379,39 @@ void Codegen::EmitAdd()
   assert(depth_ > 0 && "no elements on stack");
   depth_ -= 1;
   Emit<Opcode>(Opcode::ADD);
+}
+
+void Codegen::EmitPushInt(uint64_t nr)
+{
+  
+  depth_ += 1;
+  Emit<Opcode>(Opcode::PUSH_INT);
+  Emit<int64_t>(nr);
+
+}
+
+void Codegen::EmitSub()
+{
+  assert(depth_ > 0 && "no elements on stack");
+  depth_ -= 1;
+  Emit<Opcode>(Opcode::SUB);
+}
+
+// -----------------------------------------------------------------------------
+void Codegen::EmitMul()
+{
+  assert(depth_ > 0 && "no elements on stack");
+  depth_ -= 1;
+  Emit<Opcode>(Opcode::MUL);
+}
+
+
+// -----------------------------------------------------------------------------
+void Codegen::EmitEq()
+{
+  assert(depth_ > 0 && "no elements on stack");
+  depth_ -= 1;
+  Emit<Opcode>(Opcode::EQ);
 }
 
 // -----------------------------------------------------------------------------

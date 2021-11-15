@@ -22,6 +22,7 @@ public:
     BLOCK,
     WHILE,
     EXPR,
+    IF,
     RETURN
   };
 
@@ -45,6 +46,7 @@ public:
     REF,
     BINARY,
     CALL,
+    INT
   };
 
 public:
@@ -82,7 +84,10 @@ class BinaryExpr : public Expr {
 public:
   /// Enumeration of binary operators.
   enum class Kind {
-    ADD
+    ADD,
+    SUB,
+    MUL,
+    EQ
   };
 
 public:
@@ -92,6 +97,7 @@ public:
   {
   }
 
+  
   Kind GetKind() const { return kind_; }
 
   const Expr &GetLHS() const { return *lhs_; }
@@ -104,6 +110,25 @@ private:
   std::shared_ptr<Expr> lhs_;
   /// Right-hand operand.
   std::shared_ptr<Expr> rhs_;
+};
+
+
+/**
+ * Integer expression.
+ */
+
+class IntegerExpr : public Expr {
+public:
+  IntegerExpr(uint64_t val)
+    : Expr(Kind::INT)
+    , val_(val)
+  {
+  }
+
+  const uint64_t &GetVal() const { return val_; }
+
+private:
+  uint64_t val_;
 };
 
 /**
@@ -201,6 +226,32 @@ class WhileStmt final : public Stmt {
 public:
   WhileStmt(std::shared_ptr<Expr> cond, std::shared_ptr<Stmt> stmt)
     : Stmt(Kind::WHILE)
+    , cond_(cond)
+    , stmt_(stmt)
+  {
+  }
+
+  const Expr &GetCond() const { return *cond_; }
+  const Stmt &GetStmt() const { return *stmt_; }
+
+private:
+  /// Condition for the loop.
+  std::shared_ptr<Expr> cond_;
+  /// Expression to be executed in the loop body.
+  std::shared_ptr<Stmt> stmt_;
+};
+
+
+
+/**
+ * If statement.
+ *
+ * if (<cond>) <stmt>
+ */
+class IfStmt final : public Stmt {
+public:
+  IfStmt(std::shared_ptr<Expr> cond, std::shared_ptr<Stmt> stmt)
+    : Stmt(Kind::IF)
     , cond_(cond)
     , stmt_(stmt)
   {

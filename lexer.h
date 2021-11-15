@@ -36,6 +36,7 @@ public:
     // Keywords.
     FUNC,
     RETURN,
+    IF,
     WHILE,
     // Symbols.
     LPAREN,
@@ -47,6 +48,9 @@ public:
     EQUAL,
     COMMA,
     PLUS,
+    SUB,
+    MUL,
+    EQ,
     // Complex tokens.
     INT,
     STRING,
@@ -87,6 +91,13 @@ public:
     return *value_.StringValue;
   }
 
+   /// Return the integer value.
+ uint64_t GetInt() const
+  {
+    assert(Is(Kind::INT) && "not an identifier");
+    return value_.IntValue;
+  }
+
   /// Copy operator.
   Token &operator=(const Token &that);
 
@@ -100,12 +111,17 @@ public:
   static Token Semi(const Location &l) { return Token(l, Kind::SEMI); }
   static Token Equal(const Location &l) { return Token(l, Kind::EQUAL); }
   static Token Plus(const Location &l) { return Token(l, Kind::PLUS); }
+  static Token Sub(const Location &l) { return Token(l, Kind::SUB); }
+  static Token Eq(const Location &l) { return Token(l, Kind::EQ); }
+  static Token Mul(const Location &l) { return Token(l, Kind::MUL); }
   static Token Comma(const Location &l) { return Token(l, Kind::COMMA); }
   static Token Func(const Location &l) { return Token(l, Kind::FUNC); }
   static Token Return(const Location &l) { return Token(l, Kind::RETURN); }
   static Token While(const Location &l) { return Token(l, Kind::WHILE); }
+  static Token If(const Location &l) { return Token(l, Kind::IF); }
   static Token Ident(const Location &l, const std::string &str);
   static Token String(const Location &l, const std::string &str);
+  static Token Integer(const Location &l, uint64_t intVal); //const uint64_t intVal
 
   /// Print the token to a stream.
   void Print(std::ostream &os) const;

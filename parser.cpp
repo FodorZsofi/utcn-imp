@@ -88,6 +88,7 @@ std::shared_ptr<Stmt> Parser::ParseStmt()
   switch (tk.GetKind()) {
     case Token::Kind::RETURN: return ParseReturnStmt();
     case Token::Kind::WHILE: return ParseWhileStmt();
+    case Token::Kind::IF: return ParseIfStmt();
     case Token::Kind::LBRACE: return ParseBlockStmt();
     default: return std::make_shared<ExprStmt>(ParseExpr());
   }
@@ -131,6 +132,18 @@ std::shared_ptr<WhileStmt> Parser::ParseWhileStmt()
   auto stmt = ParseStmt();
   return std::make_shared<WhileStmt>(cond, stmt);
 }
+// -----------------------------------------------------------------------------
+std::shared_ptr<IfStmt> Parser::ParseIfStmt()
+{
+  Check(Token::Kind::IF);
+  Expect(Token::Kind::LPAREN);
+  lexer_.Next();
+  auto cond = ParseExpr();
+  Check(Token::Kind::RPAREN);
+  lexer_.Next();
+  auto stmt = ParseStmt();
+  return std::make_shared<IfStmt>(cond, stmt);
+}
 
 // -----------------------------------------------------------------------------
 std::shared_ptr<Expr> Parser::ParseTermExpr()
@@ -142,6 +155,13 @@ std::shared_ptr<Expr> Parser::ParseTermExpr()
       lexer_.Next();
       return std::static_pointer_cast<Expr>(
           std::make_shared<RefExpr>(ident)
+      );
+    }
+    case Token::Kind::INT: {
+      uint64_t nr = tk.GetInt();
+      lexer_.Next();
+      return std::static_pointer_cast<Expr>(
+          std::make_shared<IntegerExpr>(nr)
       );
     }
     default: {
@@ -175,13 +195,35 @@ std::shared_ptr<Expr> Parser::ParseCallExpr()
 std::shared_ptr<Expr> Parser::ParseAddSubExpr()
 {
   std::shared_ptr<Expr> term = ParseCallExpr();
+  //ADD
   while (Current().Is(Token::Kind::PLUS)) {
     lexer_.Next();
     auto rhs = ParseCallExpr();
     term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::ADD, term, rhs);
   }
+  //SUB
+  while (Current().Is(Token::Kind::SUB)) {
+    lexer_.Next();
+    auto rhs = ParseCallExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::SUB, term, rhs);
+  }
+  //MUL
+  while (Current().Is(Token::Kind::MUL)) {
+    lexer_.Next();
+    auto rhs = ParseCallExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::MUL, term, rhs);
+  }
+  //EQ
+  while (Current().Is(Token::Kind::EQ)) {
+    lexer_.Next();
+    auto rhs = ParseCallExpr();
+    term = std::make_shared<BinaryExpr>(BinaryExpr::Kind::EQ, term, rhs);
+  }
+
   return term;
 }
+
+
 
 // -----------------------------------------------------------------------------
 const Token &Parser::Expect(Token::Kind kind)
